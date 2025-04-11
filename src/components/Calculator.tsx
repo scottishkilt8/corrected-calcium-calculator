@@ -155,18 +155,30 @@ const Calculator = () => {
       </CardHeader>
       <CardContent className="pt-6 pb-4 px-6">
         <div className="space-y-5">
-          {/* Unit toggle group */}
+          {/* Improved unit toggle group */}
           <div className="flex justify-center mb-4">
             <ToggleGroup 
               type="single" 
               value={unit} 
               onValueChange={handleUnitChange}
-              className="border rounded-lg"
+              className="border-2 rounded-lg shadow-sm"
             >
-              <ToggleGroupItem value="mg/dL" aria-label="Set units to mg/dL" className="px-3 text-sm rounded-l-md data-[state=on]:bg-medical-blue data-[state=on]:text-white">
+              <ToggleGroupItem 
+                value="mg/dL" 
+                aria-label="Set units to mg/dL" 
+                className="px-4 py-2 text-base font-medium rounded-l-md transition-all duration-200
+                  data-[state=on]:bg-medical-blue-bright data-[state=on]:text-white
+                  data-[state=off]:bg-gray-100 data-[state=off]:hover:bg-gray-200"
+              >
                 mg/dL
               </ToggleGroupItem>
-              <ToggleGroupItem value="mmol/L" aria-label="Set units to mmol/L" className="px-3 text-sm rounded-r-md data-[state=on]:bg-medical-blue data-[state=on]:text-white">
+              <ToggleGroupItem 
+                value="mmol/L" 
+                aria-label="Set units to mmol/L" 
+                className="px-4 py-2 text-base font-medium rounded-r-md transition-all duration-200
+                  data-[state=on]:bg-medical-blue-bright data-[state=on]:text-white
+                  data-[state=off]:bg-gray-100 data-[state=off]:hover:bg-gray-200"
+              >
                 mmol/L
               </ToggleGroupItem>
             </ToggleGroup>
