@@ -1,9 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Tooltip,
   TooltipContent,
@@ -11,51 +12,91 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Calculator as CalculatorIcon, HelpCircle, RotateCcw } from "lucide-react";
+import { Calculator as CalculatorIcon, HelpCircle, RotateCcw, Clipboard, ClipboardCheck } from "lucide-react";
 
 const Calculator = () => {
   const [calcium, setCalcium] = useState<string>("");
   const [albumin, setAlbumin] = useState<string>("");
   const [correctedCalcium, setCorrectedCalcium] = useState<string | null>(null);
+  const [calciumWarning, setCalciumWarning] = useState<string | null>(null);
+  const [albuminWarning, setAlbuminWarning] = useState<string | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
+  const resultRef = useRef<HTMLDivElement>(null);
 
-  const calculateCorrectedCalcium = () => {
-    // Convert inputs to numbers and validate
+  // Calculate corrected calcium in real-time as user types
+  useEffect(() => {
+    if (calcium === "" || albumin === "") {
+      setCorrectedCalcium(null);
+      return;
+    }
+
     const calciumValue = parseFloat(calcium);
     const albuminValue = parseFloat(albumin);
 
-    if (isNaN(calciumValue) || isNaN(albuminValue)) {
-      toast.error("Please enter valid numbers for both fields");
+    // Only calculate if both inputs are valid numbers
+    if (!isNaN(calciumValue) && !isNaN(albuminValue)) {
+      const result = calciumValue + 0.8 * (4.0 - albuminValue);
+      const roundedResult = Math.round(result * 100) / 100;
+      setCorrectedCalcium(roundedResult.toFixed(2));
+    } else {
+      setCorrectedCalcium(null);
+    }
+  }, [calcium, albumin]);
+
+  // Validate calcium input and show warning if needed
+  useEffect(() => {
+    if (calcium === "") {
+      setCalciumWarning(null);
       return;
     }
 
-    // Validate ranges (typical clinical ranges)
-    if (calciumValue < 5 || calciumValue > 15) {
-      toast.warning("Calcium values typically range from 5-15 mg/dL. Please verify your input.");
+    const calciumValue = parseFloat(calcium);
+    if (isNaN(calciumValue)) {
+      setCalciumWarning("Please enter a valid number");
+    } else if (calciumValue < 5 || calciumValue > 15) {
+      setCalciumWarning("Calcium values typically range from 5–15 mg/dL. Please verify your input.");
+    } else {
+      setCalciumWarning(null);
+    }
+  }, [calcium]);
+
+  // Validate albumin input and show warning if needed
+  useEffect(() => {
+    if (albumin === "") {
+      setAlbuminWarning(null);
       return;
     }
 
-    if (albuminValue < 1 || albuminValue > 7) {
-      toast.warning("Albumin values typically range from 1-7 g/dL. Please verify your input.");
-      return;
+    const albuminValue = parseFloat(albumin);
+    if (isNaN(albuminValue)) {
+      setAlbuminWarning("Please enter a valid number");
+    } else if (albuminValue < 1 || albuminValue > 7) {
+      setAlbuminWarning("Albumin values typically range from 1-7 g/dL. Please verify your input.");
+    } else {
+      setAlbuminWarning(null);
     }
-
-    // Calculate corrected calcium using the formula
-    const result = calciumValue + 0.8 * (4.0 - albuminValue);
-    
-    // Round to 2 decimal places
-    const roundedResult = Math.round(result * 100) / 100;
-    
-    setCorrectedCalcium(roundedResult.toFixed(2));
-    
-    // Show success toast
-    toast.success("Calculation complete!");
-  };
+  }, [albumin]);
 
   const resetForm = () => {
     setCalcium("");
     setAlbumin("");
     setCorrectedCalcium(null);
+    setCalciumWarning(null);
+    setAlbuminWarning(null);
     toast("Form has been reset");
+  };
+
+  const copyToClipboard = () => {
+    if (correctedCalcium) {
+      navigator.clipboard.writeText(`Corrected Calcium: ${correctedCalcium} mg/dL`);
+      setCopied(true);
+      toast.success("Result copied to clipboard!");
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    }
   };
 
   return (
@@ -67,13 +108,7 @@ const Calculator = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6 pb-4 px-6">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            calculateCorrectedCalcium();
-          }}
-          className="space-y-5"
-        >
+        <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center">
               <Label htmlFor="calcium" className="text-sm font-medium">
@@ -105,6 +140,11 @@ const Calculator = () => {
               type="number"
               step="0.1"
             />
+            {calciumWarning && (
+              <p className="text-sm text-amber-500 flex items-center mt-1">
+                ⚠️ {calciumWarning}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -138,33 +178,53 @@ const Calculator = () => {
               type="number"
               step="0.1"
             />
+            {albuminWarning && (
+              <p className="text-sm text-amber-500 flex items-center mt-1">
+                ⚠️ {albuminWarning}
+              </p>
+            )}
           </div>
 
-          <div className="flex space-x-3 pt-2">
-            <Button 
-              type="submit" 
-              className="w-full bg-medical-blue-bright hover:opacity-90 transition-opacity"
-            >
-              <CalculatorIcon className="mr-2 h-4 w-4" /> Calculate
-            </Button>
+          <div className="flex justify-end">
             <Button 
               type="button" 
               variant="outline" 
               onClick={resetForm}
-              className="w-1/3"
+              className="flex items-center"
             >
               <RotateCcw className="mr-2 h-4 w-4" /> Reset
             </Button>
           </div>
 
           {correctedCalcium && (
-            <div className="mt-5 p-3 bg-medical-green rounded-lg text-center">
-              <p className="text-sm font-medium">Corrected Calcium:</p>
+            <div 
+              ref={resultRef}
+              className="mt-4 p-4 bg-medical-green rounded-lg text-center transition-all duration-300 ease-in-out"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-sm font-medium">Corrected Calcium:</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="h-8"
+                >
+                  {copied ? (
+                    <ClipboardCheck className="h-4 w-4 mr-1 text-green-600" />
+                  ) : (
+                    <Clipboard className="h-4 w-4 mr-1" />
+                  )}
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+              </div>
               <p className="text-2xl font-bold">{correctedCalcium} mg/dL</p>
+              <p className="text-sm text-gray-600 mt-2">
+                🧪 Average corrected calcium: ~9.4 mg/dL (may vary by lab)
+              </p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="mt-1">
+                    <Button variant="ghost" size="sm" className="mt-2">
                       <HelpCircle className="h-4 w-4 mr-1" /> What does this mean?
                     </Button>
                   </TooltipTrigger>
@@ -179,7 +239,7 @@ const Calculator = () => {
               </TooltipProvider>
             </div>
           )}
-        </form>
+        </div>
       </CardContent>
     </Card>
   );
