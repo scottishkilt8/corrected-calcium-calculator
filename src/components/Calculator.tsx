@@ -12,16 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { 
-  Calculator as CalculatorIcon, 
-  HelpCircle, 
-  RotateCcw, 
-  Clipboard, 
-  ClipboardCheck,
-  ToggleLeft,
-  ToggleRight
-} from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { Calculator as CalculatorIcon, HelpCircle, RotateCcw, Clipboard, ClipboardCheck } from "lucide-react";
 
 const Calculator = () => {
   const [calcium, setCalcium] = useState<string>("");
@@ -30,7 +21,6 @@ const Calculator = () => {
   const [calciumWarning, setCalciumWarning] = useState<string | null>(null);
   const [albuminWarning, setAlbuminWarning] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const [useMMOL, setUseMMOL] = useState<boolean>(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Calculate corrected calcium in real-time as user types
@@ -47,18 +37,11 @@ const Calculator = () => {
     if (!isNaN(calciumValue) && !isNaN(albuminValue)) {
       const result = calciumValue + 0.8 * (4.0 - albuminValue);
       const roundedResult = Math.round(result * 100) / 100;
-
-      if (useMMOL) {
-        // Convert mg/dL to mmol/L (1 mg/dL = 0.25 mmol/L for calcium)
-        const mmolValue = roundedResult * 0.25;
-        setCorrectedCalcium(mmolValue.toFixed(2));
-      } else {
-        setCorrectedCalcium(roundedResult.toFixed(2));
-      }
+      setCorrectedCalcium(roundedResult.toFixed(2));
     } else {
       setCorrectedCalcium(null);
     }
-  }, [calcium, albumin, useMMOL]);
+  }, [calcium, albumin]);
 
   // Validate calcium input and show warning if needed
   useEffect(() => {
@@ -70,25 +53,12 @@ const Calculator = () => {
     const calciumValue = parseFloat(calcium);
     if (isNaN(calciumValue)) {
       setCalciumWarning("Please enter a valid number");
+    } else if (calciumValue < 5 || calciumValue > 15) {
+      setCalciumWarning("Calcium values typically range from 5–15 mg/dL. Please verify your input.");
     } else {
-      // Check range based on current unit
-      if (!useMMOL) {
-        // mg/dL range
-        if (calciumValue < 5 || calciumValue > 15) {
-          setCalciumWarning("Calcium values typically range from 5–15 mg/dL. Please verify your input.");
-        } else {
-          setCalciumWarning(null);
-        }
-      } else {
-        // mmol/L range (convert ranges: 5 mg/dL = 1.25 mmol/L, 15 mg/dL = 3.75 mmol/L)
-        if (calciumValue < 1.25 || calciumValue > 3.75) {
-          setCalciumWarning("Calcium values typically range from 1.25–3.75 mmol/L. Please verify your input.");
-        } else {
-          setCalciumWarning(null);
-        }
-      }
+      setCalciumWarning(null);
     }
-  }, [calcium, useMMOL]);
+  }, [calcium]);
 
   // Validate albumin input and show warning if needed
   useEffect(() => {
@@ -118,8 +88,7 @@ const Calculator = () => {
 
   const copyToClipboard = () => {
     if (correctedCalcium) {
-      const unit = useMMOL ? "mmol/L" : "mg/dL";
-      navigator.clipboard.writeText(`Corrected Calcium: ${correctedCalcium} ${unit}`);
+      navigator.clipboard.writeText(`Corrected Calcium: ${correctedCalcium} mg/dL`);
       setCopied(true);
       toast.success("Result copied to clipboard!");
       
@@ -130,58 +99,20 @@ const Calculator = () => {
     }
   };
 
-  const toggleUnit = () => {
-    setUseMMOL(!useMMOL);
-    
-    // Convert inputs if they exist
-    if (calcium) {
-      const calciumNum = parseFloat(calcium);
-      if (!isNaN(calciumNum)) {
-        if (useMMOL) {
-          // Converting from mmol/L to mg/dL
-          setCalcium((calciumNum / 0.25).toFixed(2));
-        } else {
-          // Converting from mg/dL to mmol/L
-          setCalcium((calciumNum * 0.25).toFixed(2));
-        }
-      }
-    }
-    
-    toast.info(`Units switched to ${!useMMOL ? 'mmol/L' : 'mg/dL'}`);
-  };
-
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg animate-fade-in dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
-      <CardHeader className="bg-medical-blue dark:bg-gray-700 rounded-t-lg transition-colors duration-300">
-        <CardTitle className="text-2xl text-center dark:text-white transition-colors duration-300">
-          Corrected Calcium Calculator
-        </CardTitle>
-        <CardDescription className="text-center dark:text-gray-300 transition-colors duration-300">
+    <Card className="w-full max-w-md mx-auto shadow-lg animate-fade-in">
+      <CardHeader className="bg-medical-blue rounded-t-lg">
+        <CardTitle className="text-2xl text-center">Corrected Calcium Calculator</CardTitle>
+        <CardDescription className="text-center">
           Quickly calculate corrected calcium based on serum albumin.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6 pb-4 px-6">
-        <div className="flex justify-end items-center mb-4">
-          <div className="flex items-center space-x-2 text-sm">
-            <span className={`${!useMMOL ? 'font-bold' : 'text-gray-500 dark:text-gray-400'} transition-colors duration-300`}>
-              mg/dL
-            </span>
-            <Switch 
-              checked={useMMOL} 
-              onCheckedChange={toggleUnit}
-              id="unit-toggle" 
-            />
-            <span className={`${useMMOL ? 'font-bold' : 'text-gray-500 dark:text-gray-400'} transition-colors duration-300`}>
-              mmol/L
-            </span>
-          </div>
-        </div>
-
         <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center">
-              <Label htmlFor="calcium" className="text-sm font-medium dark:text-white transition-colors duration-300">
-                Serum Calcium ({useMMOL ? 'mmol/L' : 'mg/dL'})
+              <Label htmlFor="calcium" className="text-sm font-medium">
+                Serum Calcium (mg/dL)
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -194,8 +125,7 @@ const Calculator = () => {
                   <TooltipContent className="max-w-xs">
                     <p>
                       Serum calcium is the measured calcium level in your blood. 
-                      Normal range is typically 8.5-10.5 mg/dL (2.1-2.6 mmol/L). 
-                      This calculator adjusts for the effect of albumin on total calcium.
+                      Normal range is typically 8.5-10.5 mg/dL.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -203,17 +133,15 @@ const Calculator = () => {
             </div>
             <Input
               id="calcium"
-              placeholder={`Enter value (e.g., ${useMMOL ? '2.4' : '9.5'})`}
+              placeholder="Enter value (e.g., 9.5)"
               value={calcium}
               onChange={(e) => setCalcium(e.target.value)}
-              className={`focus:border-medical-blue-bright dark:bg-gray-700 dark:text-white dark:border-gray-600 transition-colors duration-300 ${
-                calciumWarning ? 'border-red-300 focus:border-red-500' : ''
-              }`}
+              className="focus:border-medical-blue-bright"
               type="number"
               step="0.1"
             />
             {calciumWarning && (
-              <p className="text-sm text-amber-500 dark:text-amber-400 flex items-center mt-1 transition-colors duration-300">
+              <p className="text-sm text-amber-500 flex items-center mt-1">
                 ⚠️ {calciumWarning}
               </p>
             )}
@@ -221,7 +149,7 @@ const Calculator = () => {
 
           <div className="space-y-2">
             <div className="flex items-center">
-              <Label htmlFor="albumin" className="text-sm font-medium dark:text-white transition-colors duration-300">
+              <Label htmlFor="albumin" className="text-sm font-medium">
                 Albumin (g/dL)
               </Label>
               <TooltipProvider>
@@ -235,8 +163,7 @@ const Calculator = () => {
                   <TooltipContent className="max-w-xs">
                     <p>
                       Serum albumin is a protein made by the liver. 
-                      Normal range is typically 3.5-5.0 g/dL. Low albumin can falsely lower total calcium readings, 
-                      which is why this calculator adjusts for it.
+                      Normal range is typically 3.5-5.0 g/dL. Low albumin can affect calcium readings.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -247,14 +174,12 @@ const Calculator = () => {
               placeholder="Enter value (e.g., 4.0)"
               value={albumin}
               onChange={(e) => setAlbumin(e.target.value)}
-              className={`focus:border-medical-blue-bright dark:bg-gray-700 dark:text-white dark:border-gray-600 transition-colors duration-300 ${
-                albuminWarning ? 'border-red-300 focus:border-red-500' : ''
-              }`}
+              className="focus:border-medical-blue-bright"
               type="number"
               step="0.1"
             />
             {albuminWarning && (
-              <p className="text-sm text-amber-500 dark:text-amber-400 flex items-center mt-1 transition-colors duration-300">
+              <p className="text-sm text-amber-500 flex items-center mt-1">
                 ⚠️ {albuminWarning}
               </p>
             )}
@@ -265,7 +190,7 @@ const Calculator = () => {
               type="button" 
               variant="outline" 
               onClick={resetForm}
-              className="flex items-center dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors duration-300"
+              className="flex items-center"
             >
               <RotateCcw className="mr-2 h-4 w-4" /> Reset
             </Button>
@@ -274,15 +199,15 @@ const Calculator = () => {
           {correctedCalcium && (
             <div 
               ref={resultRef}
-              className="mt-4 p-4 bg-medical-green dark:bg-gray-700 rounded-lg text-center transition-all duration-300 ease-in-out"
+              className="mt-4 p-4 bg-medical-green rounded-lg text-center transition-all duration-300 ease-in-out"
             >
               <div className="flex justify-between items-center mb-2">
-                <p className="text-sm font-medium dark:text-white transition-colors duration-300">Corrected Calcium:</p>
+                <p className="text-sm font-medium">Corrected Calcium:</p>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={copyToClipboard}
-                  className="h-8 dark:text-white dark:hover:bg-gray-600 transition-colors duration-300"
+                  className="h-8"
                 >
                   {copied ? (
                     <ClipboardCheck className="h-4 w-4 mr-1 text-green-600" />
@@ -292,23 +217,21 @@ const Calculator = () => {
                   {copied ? "Copied!" : "Copy"}
                 </Button>
               </div>
-              <p className="text-2xl font-bold dark:text-white transition-colors duration-300">
-                {correctedCalcium} {useMMOL ? 'mmol/L' : 'mg/dL'}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 transition-colors duration-300">
-                🧪 Average corrected calcium: ~{useMMOL ? '2.35' : '9.4'} {useMMOL ? 'mmol/L' : 'mg/dL'} (may vary by lab)
+              <p className="text-2xl font-bold">{correctedCalcium} mg/dL</p>
+              <p className="text-sm text-gray-600 mt-2">
+                🧪 Average corrected calcium: ~9.4 mg/dL (may vary by lab)
               </p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="mt-2 dark:text-white dark:hover:bg-gray-600 transition-colors duration-300">
+                    <Button variant="ghost" size="sm" className="mt-2">
                       <HelpCircle className="h-4 w-4 mr-1" /> What does this mean?
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs">
                     <p>
                       Corrected calcium adjusts for the effect of albumin on total calcium levels.
-                      Normal range is typically 8.5-10.5 mg/dL (2.1-2.6 mmol/L). Values outside this range may
+                      Normal range is typically 8.5-10.5 mg/dL. Values outside this range may
                       indicate various medical conditions and should be discussed with a healthcare provider.
                     </p>
                   </TooltipContent>
